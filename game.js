@@ -28,84 +28,84 @@ let targetRemoteX = 200;
 let targetRemoteY = 450;
 let lastSendTime = 0;
 
-function preload() {}
+function preload() {
+  // Yüklediğin fotoğrafları içeri aktarıyoruz (Eğer uzantın .jpg ise burayı .jpg yap)
+  this.load.image('fotoBen', 'ben.png');
+  this.load.image('fotoO', 'o.png');
+}
 
 function create() {
-  this.cameras.main.setBackgroundColor('#1e272e');
+  // Arka plan: Koyu zindan mavisi/mor
+  this.cameras.main.setBackgroundColor('#130f40');
 
-  // Bilgilendirme Yazıları
+  // Bilgi Paneli
   statusText = this.add.text(20, 15, 'Odaya bağlanılıyor...', { fontSize: '13px', fill: '#f1c40f' });
-  missionText = this.add.text(400, 25, '1. Butona bas -> Partnerin geçsin -> 2. Butona bassın -> Sen geç!', { 
-    fontSize: '14px', fill: '#ffffff', backgroundColor: '#34495e', padding: { x: 8, y: 4 } 
+  missionText = this.add.text(400, 25, '❤️ Birlikte Zindandan Kaçış ❤️', { 
+    fontSize: '15px', fill: '#ffffff', backgroundColor: '#30336b', padding: { x: 12, y: 6 } 
   }).setOrigin(0.5);
 
-  winText = this.add.text(400, 300, 'HARİKA İŞBİRLİĞİ! ❤️\n1. ODA GEÇİLDİ', { 
-    fontSize: '26px', fill: '#2ecc71', backgroundColor: '#000000', align: 'center', padding: { x: 20, y: 12 } 
+  winText = this.add.text(400, 300, '🎉 HARİKASINIZ! BÖLÜM GEÇİLDİ 🎉', { 
+    fontSize: '26px', fill: '#6ab04c', backgroundColor: '#130f40', padding: { x: 20, y: 15 } 
   }).setOrigin(0.5).setVisible(false);
 
-  // Görsel Çizimleri
+  // Görsel Çizimleri (Dekoratif Nesneler)
   const g = this.make.graphics({ x: 0, y: 0, add: false });
 
-  // Mavi Karakter
-  g.fillStyle(0x0984e3, 1); g.fillRoundedRect(0, 0, 38, 38, 8);
-  g.generateTexture('texMavi', 38, 38);
+  // 1. Basınç Butonları (Neon Sarı ve Mor/Pembe)
+  g.fillStyle(0xf9ca24, 1); g.fillRoundedRect(0, 0, 50, 50, 8);
+  g.generateTexture('texButton1', 50, 50);
 
-  // Pembe Karakter
-  g.clear(); g.fillStyle(0xfd79a8, 1); g.fillRoundedRect(0, 0, 38, 38, 8);
-  g.generateTexture('texPembe', 38, 38);
+  g.clear(); g.fillStyle(0xe056fd, 1); g.fillRoundedRect(0, 0, 50, 50, 8);
+  g.generateTexture('texButton2', 50, 50);
 
-  // Basınç Butonları (Sarı ve Turuncu)
-  g.clear(); g.fillStyle(0xf1c40f, 1); g.fillRoundedRect(0, 0, 45, 45, 6);
-  g.generateTexture('texButton1', 45, 45);
-
-  g.clear(); g.fillStyle(0xe67e22, 1); g.fillRoundedRect(0, 0, 45, 45, 6);
-  g.generateTexture('texButton2', 45, 45);
-
-  // Geçilmez Gri Duvar Parçası
-  g.clear(); g.fillStyle(0x7f8c8d, 1); g.fillRect(0, 0, 30, 200);
+  // 2. Taş Duvarlar (Koyu Gri Zindan Duvarı)
+  g.clear(); g.fillStyle(0x535c68, 1); g.fillRect(0, 0, 30, 200);
   g.generateTexture('texWall', 30, 200);
 
-  // Kırmızı Lazer Kapı (Ortadaki Geçit)
-  g.clear(); g.fillStyle(0xe74c3c, 1); g.fillRect(0, 0, 30, 200);
+  // 3. Parlak Lazer Kapı (Kırmızı/Turuncu Işıma)
+  g.clear(); g.fillStyle(0xff3838, 1); g.fillRect(0, 0, 30, 200);
   g.generateTexture('texDoor', 30, 200);
 
-  // Yeşil Çıkış Portalı
-  g.clear(); g.fillStyle(0x2ecc71, 1); g.fillCircle(28, 28, 28);
-  g.generateTexture('texExit', 56, 56);
+  // 4. Çıkış Portalı (Aşk Kalbi / Yeşil Portal)
+  g.clear(); g.fillStyle(0x6ab04c, 1); g.fillCircle(30, 30, 30);
+  g.generateTexture('texExit', 60, 60);
 
-  // 1. DÜNYAYI İKİYE BÖLEN DUVARLAR (Geçilmez)
+  // Duvarları Oluşturma
   walls = this.physics.add.staticGroup();
-  walls.create(400, 100, 'texWall'); // Üst duvar (0 - 200 px arası)
-  walls.create(400, 500, 'texWall'); // Alt duvar (400 - 600 px arası)
+  walls.create(400, 100, 'texWall');
+  walls.create(400, 500, 'texWall');
 
-  // 2. KAPI, BUTONLAR VE PORTAL
-  // Kırmızı kapı tam ortada (200 - 400 px arası) yer alır
+  // Kapı, Butonlar ve Çıkış
   laserDoor = this.physics.add.staticSprite(400, 300, 'texDoor');
+  button1 = this.physics.add.staticSprite(120, 150, 'texButton1');
+  button2 = this.physics.add.staticSprite(680, 450, 'texButton2');
+  exitPortal = this.physics.add.staticSprite(680, 150, 'texExit');
 
-  button1 = this.physics.add.staticSprite(120, 150, 'texButton1'); // Sol odadaki buton
-  button2 = this.physics.add.staticSprite(680, 450, 'texButton2'); // Sağ odadaki buton
-  exitPortal = this.physics.add.staticSprite(680, 150, 'texExit');  // Sağ odadaki çıkış
-
-  // Buton İsimleri
   this.add.text(120, 150, '1. Buton', { fontSize: '11px', fill: '#000' }).setOrigin(0.5);
   this.add.text(680, 450, '2. Buton', { fontSize: '11px', fill: '#fff' }).setOrigin(0.5);
+  this.add.text(680, 150, 'ÇIKIŞ', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
 
-  // 3. KARAKTERLER
-  myPlayer = this.physics.add.sprite(100, 450, 'texMavi');
+  // Karakterleri Fotoğraflarla Oluşturma (45x45 boyutuna ölçekliyoruz)
+  myPlayer = this.physics.add.sprite(100, 450, 'fotoBen').setDisplaySize(48, 48);
   myPlayer.setCollideWorldBounds(true);
 
-  remotePlayer = this.physics.add.sprite(200, 450, 'texPembe');
+  remotePlayer = this.physics.add.sprite(200, 450, 'fotoO').setDisplaySize(48, 48);
   remotePlayer.setCollideWorldBounds(true);
 
-  // Fizik Çarpışmaları (Karakterler duvardan ve kapalı kapıdan ASLA geçemez)
+  // Çarpışmalar
   this.physics.add.collider(myPlayer, walls);
   this.physics.add.collider(remotePlayer, walls);
   this.physics.add.collider(myPlayer, laserDoor);
   this.physics.add.collider(remotePlayer, laserDoor);
 
   // İsim Etiketleri
-  myLabel = this.add.text(myPlayer.x, myPlayer.y - 28, 'Sen', { fontSize: '12px', fill: '#fff' }).setOrigin(0.5);
-  remoteLabel = this.add.text(remotePlayer.x, remotePlayer.y - 28, 'Partnerin', { fontSize: '12px', fill: '#fff' }).setOrigin(0.5);
+  myLabel = this.add.text(myPlayer.x, myPlayer.y - 32, 'Sen', { 
+    fontSize: '12px', fill: '#ffffff', backgroundColor: '#22a6b3', padding: { x: 4, y: 2 } 
+  }).setOrigin(0.5);
+
+  remoteLabel = this.add.text(remotePlayer.x, remotePlayer.y - 32, 'Sevgilin', { 
+    fontSize: '12px', fill: '#ffffff', backgroundColor: '#be2edd', padding: { x: 4, y: 2 } 
+  }).setOrigin(0.5);
 
   // Kontroller
   cursors = this.input.keyboard.createCursorKeys();
@@ -120,7 +120,7 @@ function connectWebSocket(scene) {
   socket = new WebSocket(SERVER_URL);
 
   socket.onopen = () => {
-    statusText.setText('Bağlandı! Oda Aktif').setStyle({ fill: '#00b894' });
+    statusText.setText('Bağlandı! Oda Aktif').setStyle({ fill: '#6ab04c' });
     socket.send(JSON.stringify({ type: 'join', id: myId }));
   };
 
@@ -133,8 +133,11 @@ function connectWebSocket(scene) {
 
     if (data.type === 'assign_role' && data.targetId === myId) {
       myRole = 'p2';
-      myPlayer.setTexture('texPembe');
-      remotePlayer.setTexture('texMavi');
+      // Rol dağılımı: 2. oyuncunun ekranında kendi karakteri 'fotoO', partneri 'fotoBen' olur
+      myPlayer.setTexture('fotoO').setDisplaySize(48, 48);
+      remotePlayer.setTexture('fotoBen').setDisplaySize(48, 48);
+      myLabel.setStyle({ backgroundColor: '#be2edd' });
+      remoteLabel.setStyle({ backgroundColor: '#22a6b3' });
     }
 
     if (data.type === 'move' && data.id !== myId) {
@@ -147,16 +150,16 @@ function connectWebSocket(scene) {
     }
   };
 
-  socket.onerror = () => { statusText.setText('Bağlantı Bekleniyor...').setStyle({ fill: '#d63031' }); };
+  socket.onerror = () => { statusText.setText('Bağlantı Bekleniyor...').setStyle({ fill: '#eb4d4b' }); };
   socket.onclose = () => { setTimeout(() => connectWebSocket(scene), 3000); };
 }
 
 function setDoorOpen(scene, open) {
   isDoorOpen = open;
   if (open) {
-    laserDoor.disableBody(true, true); // Kapıyı aç
+    laserDoor.disableBody(true, true);
   } else {
-    laserDoor.enableBody(false, 400, 300, true, true); // Kapıyı kilitle
+    laserDoor.enableBody(false, 400, 300, true, true);
   }
 }
 
@@ -177,13 +180,12 @@ function update(time) {
     }
   }
 
-  myLabel.setPosition(myPlayer.x, myPlayer.y - 28);
-  remoteLabel.setPosition(remotePlayer.x, remotePlayer.y - 28);
+  myLabel.setPosition(myPlayer.x, myPlayer.y - 32);
+  remoteLabel.setPosition(remotePlayer.x, remotePlayer.y - 32);
 
   remotePlayer.x = Phaser.Math.Linear(remotePlayer.x, targetRemoteX, 0.35);
   remotePlayer.y = Phaser.Math.Linear(remotePlayer.y, targetRemoteY, 0.35);
 
-  // Buton Kontrolleri: 1. Butona VEYA 2. Butona herhangi biri basıyor mu?
   const onBtn1 = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), button1.getBounds()) ||
                  Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), button1.getBounds());
 
@@ -199,7 +201,6 @@ function update(time) {
     }
   }
 
-  // Bölüm Bitirme: İki karakter de sağ odadaki yeşil portalda mı?
   const myOnExit = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), exitPortal.getBounds());
   const remoteOnExit = Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), exitPortal.getBounds());
 
@@ -207,7 +208,6 @@ function update(time) {
     winText.setVisible(true);
   }
 
-  // Konum Yayınlama
   if (socket && socket.readyState === WebSocket.OPEN && time > lastSendTime + 50) {
     if (myPlayer.body.velocity.x !== 0 || myPlayer.body.velocity.y !== 0) {
       socket.send(JSON.stringify({
