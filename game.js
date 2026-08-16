@@ -22,6 +22,8 @@ let myPlayer, remotePlayer, myLabel, remoteLabel;
 let cursors, touchPointer, socket;
 let statusText, missionText, timerText, levelCountdownText, levelIntroBanner;
 let winBanner, winOverlay, winEmitter;
+let bgMusic = null;
+let musicStarted = false;
 
 // Gruplar
 let wallsGroup, doorsGroup, portalsGroup, hazardsGroup, monstersGroup;
@@ -47,13 +49,13 @@ let levelRemainingSeconds = 0;
 
 const levelData = {
   1: { name: 'İlk Adım', desc: '1. Butona bas -> Partnerin geçsin -> 2. Butona bassın!', timeLimit: 0 },
-  2: { name: 'Karşılıklı Destek', desc: 'Üst buton alttakine, alt buton üsttekine kapı açar!', timeLimit: 0 },
+  2: { name: 'Karşılıklı Destek', desc: 'Üstteki butona bas -> Alttaki geçip diğer butona bassın -> Üstteki geçsin!', timeLimit: 0 },
   3: { name: 'Refleks Koşusu', desc: 'İki butona AYNI ANDA basın! Kapı 4 saniye açık kalır!', timeLimit: 0 },
   4: { name: 'Kertenkele Devriyesi', desc: '🦎 Kertenkeleye yakalanmadan butona basıp geçin!', timeLimit: 0 },
   5: { name: '12 Saniye Baskısı', desc: '⏱️ Süre akıyor! 12 saniye dolmadan kaktüsleri aşıp portala ulaşın!', timeLimit: 12 },
   6: { name: 'Zamanlı Kilitler', desc: '1️⃣ Butonuna bas (5s açık) -> İçeri gir -> 2️⃣ Butonuna basıp çıkışa koş!', timeLimit: 0 },
   7: { name: 'Çifte Kertenkele', desc: '🦎 2 Kertenkele devriye geziyor! Aralarından süzülüp butona basın.', timeLimit: 0 },
-  8: { name: 'Tehlikeli Koridorlar', desc: '🦎 Kertenkeleden kaçarken karşılıklı kapıları açın (12 Saniye)!', timeLimit: 12 },
+  8: { name: 'Tehlikeli Koridorlar', desc: '🦎 Kertenkeleden kaçarken sırayla karşılıklı kapıları açın (12 Saniye)!', timeLimit: 12 },
   9: { name: 'Dikenli Labirent', desc: '🌵 Kaktüs dolu labirentte dikkatle ilerleyip butonları bulun.', timeLimit: 0 },
   10: { name: 'Kritik Eşzamanlama', desc: '🦎 Kertenkeleden kaçarken butonlara aynı anda basıp hızlıca geçin!', timeLimit: 0 },
   11: { name: 'Çapraz Avcılar', desc: '🦎 Çapraz gezen 2 kertenkeleye ve kaktüslere dikkat edin!', timeLimit: 0 },
@@ -84,6 +86,8 @@ const winMessages = {
 function preload() {
   this.load.image('fotoBen', 'ben.png');
   this.load.image('fotoO', 'o.png');
+  // Arka plan müziği (muzik.mp3 dosyasını yüklerseniz çalar)
+  this.load.audio('bgm', 'muzik.mp3');
 }
 
 function create() {
@@ -161,13 +165,25 @@ function create() {
     blendMode: 'ADD', lifespan: 1200, gravityY: 150, emitting: false
   }).setDepth(95);
 
+  // Müzik Başlatma & Dokunmatik Kontroller
   cursors = this.input.keyboard.createCursorKeys();
-  this.input.on('pointerdown', (p) => { touchPointer = p; });
+  this.input.on('pointerdown', (p) => {
+    touchPointer = p;
+    playMusicSafely(this);
+  });
   this.input.on('pointermove', (p) => { if (p.isDown) touchPointer = p; });
   this.input.on('pointerup', () => { touchPointer = null; });
 
   loadLevel(this, 1);
   connectWebSocket(this);
+}
+
+function playMusicSafely(scene) {
+  if (!musicStarted && scene.sound && scene.cache.audio.exists('bgm')) {
+    musicStarted = true;
+    bgMusic = scene.sound.add('bgm', { loop: true, volume: 0.45 });
+    bgMusic.play();
+  }
 }
 
 function buildTextures(scene) {
@@ -306,31 +322,34 @@ function isPlayerOnBtn(player, btn) {
   return Phaser.Math.Distance.Between(player.x, player.y, btn.x, btn.y) < 48;
 }
 
+// BÖLÜM 2, 8 ve 14 İçin Kusursuz Sıralı Geçiş Tasarımı
 function buildCorridorLevel(scene, hasLizard = false) {
   // Tam ortadan geçen sızdırmaz yatay duvar
   wallsGroup.create(400, 300, 'texWallFullH');
 
-  // Üst ve Alt Koridoru Kapatan Tam Boy Kapılar
-  activeDoor1 = scene.physics.add.staticSprite(500, 140, 'texDoorBlockTop');
-  activeDoor2 = scene.physics.add.staticSprite(500, 460, 'texDoorBlockBottom');
+  // Üst Koridor Kapısı (x:450) ve Alt Koridor Kapısı (x:450)
+  activeDoor1 = scene.physics.add.staticSprite(450, 140, 'texDoorBlockTop');
+  activeDoor2 = scene.physics.add.staticSprite(450, 460, 'texDoorBlockBottom');
 
   doorsGroup.add(activeDoor1);
   doorsGroup.add(activeDoor2);
 
   // Kaktüsler
-  addCactus(scene, 320, 140);
-  addCactus(scene, 320, 460);
+  addCactus(scene, 280, 140);
+  addCactus(scene, 280, 460);
 
   if (hasLizard) {
-    createLizard(scene, 220, 140, 90);
-    createLizard(scene, 220, 460, 90);
+    createLizard(scene, 200, 140, 90);
+    createLizard(scene, 200, 460, 90);
   }
 
-  // Butonlar
-  activeBtn1 = scene.physics.add.staticSprite(140, 140, 'texBtnBase');
-  const b1T = scene.add.text(140, 140, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
-  activeBtn2 = scene.physics.add.staticSprite(140, 460, 'texBtnBase');
-  const b2T = scene.add.text(140, 460, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+  // 1. Buton: Üst Koridorun GİRİŞ tarafında (Alttaki kapıyı açar)
+  activeBtn1 = scene.physics.add.staticSprite(120, 140, 'texBtnBase');
+  const b1T = scene.add.text(120, 140, '🔘 1', { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(2);
+
+  // 2. Buton: Alt Koridorun KARŞI tarafında / Çıkışa yakın (Üstteki kapıyı açar)
+  activeBtn2 = scene.physics.add.staticSprite(600, 460, 'texBtnBase');
+  const b2T = scene.add.text(600, 460, '🔘 2', { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(2);
 
   // Çıkış Portalları
   exitPortal1 = scene.physics.add.staticSprite(720, 140, 'texExit');
@@ -438,7 +457,6 @@ function loadLevel(scene, lvl) {
     dynamicObjects.push(b1T, b2T, exitT);
   }
   else if (lvl === 6) {
-    // 6. BÖLÜM: 3 Oda & 5 Saniyelik Zamanlı Butonlar (Asla Kilitli Kalmaz)
     wallsGroup.create(280, 100, 'texWallV');
     wallsGroup.create(280, 500, 'texWallV');
     wallsGroup.create(520, 100, 'texWallV');
@@ -452,11 +470,9 @@ function loadLevel(scene, lvl) {
     addCactus(scene, 400, 200);
     addCactus(scene, 400, 400);
 
-    // 1. Kapı Butonu (5s Açık Tutar)
     activeBtn1 = scene.physics.add.staticSprite(120, 150, 'texBtnBase');
     const b1T = scene.add.text(120, 150, '1️⃣\n5s', { fontSize: '16px', align: 'center' }).setOrigin(0.5).setDepth(2);
 
-    // 2. Kapı Butonu (5s Açık Tutar)
     activeBtn2 = scene.physics.add.staticSprite(400, 480, 'texBtnBase');
     const b2T = scene.add.text(400, 480, '2️⃣\n5s', { fontSize: '16px', align: 'center' }).setOrigin(0.5).setDepth(2);
 
@@ -682,7 +698,6 @@ function connectWebSocket(scene) {
   socket.onclose = () => { setTimeout(() => connectWebSocket(scene), 3000); };
 }
 
-// 3, 10, 15: Senkron Kapı Sayacı (4 Saniye)
 function startSyncDoorTimer(scene) {
   if (!activeDoor1) return;
 
@@ -708,7 +723,6 @@ function startSyncDoorTimer(scene) {
   });
 }
 
-// 6 ve 13: Hava Kilidi Zamanlı Kapı Sayacı (5 Saniye)
 function startSingleTimedDoor(scene, doorNum) {
   const targetDoor = doorNum === 1 ? activeDoor1 : activeDoor2;
   if (!targetDoor) return;
@@ -802,15 +816,18 @@ function update(time) {
     checkExit(this, currentLevel + 1);
   }
   else if ([2, 8, 14].includes(currentLevel)) {
+    // 2, 8 ve 14: Karşılıklı Geçiş Mekaniği
     if (activeBtn1 && activeBtn2 && activeDoor1 && activeDoor2) {
-      const onBtnTop = isPlayerOnBtn(myPlayer, activeBtn1) || isPlayerOnBtn(remotePlayer, activeBtn1);
-      const onBtnBottom = isPlayerOnBtn(myPlayer, activeBtn2) || isPlayerOnBtn(remotePlayer, activeBtn2);
+      const onBtn1 = isPlayerOnBtn(myPlayer, activeBtn1) || isPlayerOnBtn(remotePlayer, activeBtn1);
+      const onBtn2 = isPlayerOnBtn(myPlayer, activeBtn2) || isPlayerOnBtn(remotePlayer, activeBtn2);
 
-      if (onBtnTop) activeDoor2.disableBody(true, true);
-      else activeDoor2.enableBody(false, 500, 460, true, true);
+      // Üst giriş butonu (1) alttaki kapıyı açar
+      if (onBtn1) activeDoor2.disableBody(true, true);
+      else activeDoor2.enableBody(false, 450, 460, true, true);
 
-      if (onBtnBottom) activeDoor1.disableBody(true, true);
-      else activeDoor1.enableBody(false, 500, 140, true, true);
+      // Alt çıkış butonu (2) üstteki kapıyı açar
+      if (onBtn2) activeDoor1.disableBody(true, true);
+      else activeDoor1.enableBody(false, 450, 140, true, true);
     }
     checkCorridorExit(this, currentLevel + 1);
   }
@@ -833,7 +850,6 @@ function update(time) {
     checkExit(this, currentLevel === 15 ? 1 : currentLevel + 1);
   }
   else if ([6, 13].includes(currentLevel)) {
-    // 6 ve 13: 5 Saniyelik Zamanlı Hava Kilidi
     if (activeBtn1 && activeDoor1) {
       const onB1 = isPlayerOnBtn(myPlayer, activeBtn1) || isPlayerOnBtn(remotePlayer, activeBtn1);
       if (onB1 && !door1TimerEvent && activeDoor1.active) {
