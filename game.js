@@ -27,7 +27,7 @@ let winBanner, winOverlay, winEmitter;
 let wallsGroup, doorsGroup, portalsGroup, hazardsGroup, monstersGroup;
 let dynamicObjects = [];
 
-// Net Referanslar (Sıralama kaymasını önler)
+// Net Referanslar
 let activeBtn1 = null, activeBtn2 = null;
 let activeDoor1 = null, activeDoor2 = null;
 
@@ -46,7 +46,7 @@ let levelRemainingSeconds = 0;
 const levelData = {
   1: { name: 'İlk Adım', desc: '1. Butona bas -> Partnerin geçsin -> 2. Butona bassın!', timeLimit: 0 },
   2: { name: 'Karşılıklı Destek', desc: 'Kaktüslere dikkat! Üst buton alt kapıyı, alt buton üst kapıyı açar.', timeLimit: 0 },
-  3: { name: 'Refleks Koşusu', desc: 'İki butona AYNI ANDA basın! Kapı 3.5 saniye açık kalacak!', timeLimit: 0 },
+  3: { name: 'Refleks Koşusu', desc: 'İki butona AYNI ANDA basın! Kapı 4 saniye açık kalacak!', timeLimit: 0 },
   4: { name: 'Kertenkele Devriyesi', desc: '🦎 Kertenkeleye yakalanmadan butona basıp geçin!', timeLimit: 0 },
   5: { name: '12 Saniye Baskısı', desc: '⏱️ Süre akıyor! 12 saniye dolmadan kaktüsleri aşıp portala ulaşın!', timeLimit: 12 },
   6: { name: 'Çift Kilitli Geçit', desc: 'Sırayla 1. ve 2. kapıları açarak birbirinize yol verin.', timeLimit: 0 },
@@ -104,7 +104,7 @@ function create() {
   }).setOrigin(0.5).setDepth(20);
 
   timerText = this.add.text(400, 48, '', {
-    fontSize: '13px', fill: '#ffbe0b', backgroundColor: '#d63031', padding: { x: 6, y: 2 }, fontStyle: 'bold'
+    fontSize: '14px', fill: '#ffbe0b', backgroundColor: '#d63031', padding: { x: 8, y: 3 }, fontStyle: 'bold'
   }).setOrigin(0.5).setDepth(20).setVisible(false);
 
   levelCountdownText = this.add.text(715, 20, '', {
@@ -171,42 +171,53 @@ function create() {
 function buildTextures(scene) {
   const g = scene.make.graphics({ x: 0, y: 0, add: false });
 
+  // Standart Dikey Duvar
   g.fillStyle(0x3c096c, 1); g.fillRect(0, 0, 30, 200);
   g.lineStyle(2, 0x7b2cbf, 0.8); g.strokeRect(0, 0, 30, 200);
   g.generateTexture('texWallV', 30, 200);
 
-  g.clear(); g.fillStyle(0x3c096c, 1); g.fillRect(0, 0, 380, 24);
-  g.lineStyle(2, 0x7b2cbf, 0.8); g.strokeRect(0, 0, 380, 24);
-  g.generateTexture('texWallLongH', 380, 24);
+  // Ekranı Boydan Boya Bölen Kesintisiz Yatay Duvar (Hileleri engeller)
+  g.clear(); g.fillStyle(0x3c096c, 1); g.fillRect(0, 0, 800, 30);
+  g.lineStyle(2, 0x7b2cbf, 0.8); g.strokeRect(0, 0, 800, 30);
+  g.generateTexture('texWallFullH', 800, 30);
 
-  g.clear(); g.fillStyle(0xff0054, 0.9); g.fillRect(0, 0, 30, 200);
+  // Dikey Kapılar (Ekran boşluklarını kapatacak boyutta)
+  g.clear(); g.fillStyle(0xff0054, 0.95); g.fillRect(0, 0, 30, 200);
   g.lineStyle(3, 0xff5400, 1); g.strokeRect(0, 0, 30, 200);
   g.generateTexture('texDoorV', 30, 200);
 
-  g.clear(); g.fillStyle(0xff0054, 0.9); g.fillRect(0, 0, 30, 120);
+  g.clear(); g.fillStyle(0xff0054, 0.95); g.fillRect(0, 0, 30, 120);
   g.lineStyle(2, 0xff5400, 1); g.strokeRect(0, 0, 30, 120);
   g.generateTexture('texDoorShortV', 30, 120);
 
-  g.clear(); g.fillStyle(0x4cc9f0, 0.9); g.fillRect(0, 0, 24, 160);
-  g.generateTexture('texDoorSmallBlue', 24, 160);
+  // 2. Bölüm için Tam Kapatan Koridor Kapıları (Genişlik: 30, Yükseklik: 285)
+  g.clear(); g.fillStyle(0x4cc9f0, 0.95); g.fillRect(0, 0, 30, 285);
+  g.lineStyle(3, 0xffffff, 1); g.strokeRect(0, 0, 30, 285);
+  g.generateTexture('texDoorBlockTop', 30, 285);
 
-  g.clear(); g.fillStyle(0xf72585, 0.9); g.fillRect(0, 0, 24, 160);
-  g.generateTexture('texDoorSmallPink', 24, 160);
+  g.clear(); g.fillStyle(0xf72585, 0.95); g.fillRect(0, 0, 30, 285);
+  g.lineStyle(3, 0xffffff, 1); g.strokeRect(0, 0, 30, 285);
+  g.generateTexture('texDoorBlockBottom', 30, 285);
 
-  g.clear(); g.fillStyle(0x3a0ca3, 1); g.fillRoundedRect(0, 0, 48, 48, 10);
-  g.lineStyle(3, 0xffbe0b, 1); g.strokeRoundedRect(0, 0, 48, 48, 10);
-  g.generateTexture('texBtnBase', 48, 48);
+  // Buton Tabanı
+  g.clear(); g.fillStyle(0x3a0ca3, 1); g.fillRoundedRect(0, 0, 52, 52, 10);
+  g.lineStyle(3, 0xffbe0b, 1); g.strokeRoundedRect(0, 0, 52, 52, 10);
+  g.generateTexture('texBtnBase', 52, 52);
 
-  g.clear(); g.fillStyle(0x06d6a0, 0.8); g.fillCircle(28, 28, 28);
+  // Çıkış Portalı
+  g.clear(); g.fillStyle(0x06d6a0, 0.85); g.fillCircle(28, 28, 28);
   g.lineStyle(3, 0xffffff, 1); g.strokeCircle(28, 28, 28);
   g.generateTexture('texExit', 56, 56);
 
+  // Kaktüs Hitbox
   g.clear(); g.fillStyle(0x000000, 0.01); g.fillRect(0, 0, 32, 32);
   g.generateTexture('texHazardHitbox', 32, 32);
 
+  // Kertenkele Hitbox
   g.clear(); g.fillStyle(0x000000, 0.01); g.fillCircle(18, 18, 18);
   g.generateTexture('texMonsterHitbox', 36, 36);
 
+  // Konfeti
   g.clear(); g.fillStyle(0xffbe0b, 1); g.fillCircle(5, 5, 5);
   g.generateTexture('texParticle', 10, 10);
 }
@@ -285,6 +296,12 @@ function restartCurrentLevel(scene) {
   }
 }
 
+// Oyuncunun butona basıp basmadığını hatasız ölçen mesafe fonksiyonu
+function isPlayerOnBtn(player, btn) {
+  if (!player || !btn) return false;
+  return Phaser.Math.Distance.Between(player.x, player.y, btn.x, btn.y) < 45;
+}
+
 function loadLevel(scene, lvl) {
   clearCurrentLevel();
   currentLevel = lvl;
@@ -318,25 +335,28 @@ function loadLevel(scene, lvl) {
     dynamicObjects.push(b1T, b2T, exitT);
   }
   else if (lvl === 2) {
-    wallsGroup.create(400, 300, 'texWallLongH');
-    activeDoor1 = scene.physics.add.staticSprite(550, 170, 'texDoorSmallBlue').setName('doorTop');
-    activeDoor2 = scene.physics.add.staticSprite(550, 430, 'texDoorSmallPink').setName('doorBottom');
+    // Ekranı tam ortadan (y:300) boydan boya ayıran yatay duvar (Kaçış imkansız)
+    wallsGroup.create(400, 300, 'texWallFullH');
+
+    // Üst koridoru tam kapatan kapı (y: 142.5) ve Alt koridoru tam kapatan kapı (y: 457.5)
+    activeDoor1 = scene.physics.add.staticSprite(520, 142, 'texDoorBlockTop').setName('doorTop');
+    activeDoor2 = scene.physics.add.staticSprite(520, 458, 'texDoorBlockBottom').setName('doorBottom');
     doorsGroup.add(activeDoor1);
     doorsGroup.add(activeDoor2);
 
-    addCactus(scene, 380, 170);
-    addCactus(scene, 380, 430);
+    addCactus(scene, 350, 150);
+    addCactus(scene, 350, 450);
 
-    activeBtn1 = scene.physics.add.staticSprite(220, 170, 'texBtnBase');
-    const b1T = scene.add.text(220, 170, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
-    activeBtn2 = scene.physics.add.staticSprite(220, 430, 'texBtnBase');
-    const b2T = scene.add.text(220, 430, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn1 = scene.physics.add.staticSprite(200, 150, 'texBtnBase');
+    const b1T = scene.add.text(200, 150, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn2 = scene.physics.add.staticSprite(200, 450, 'texBtnBase');
+    const b2T = scene.add.text(200, 450, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
 
-    const exitTop = scene.physics.add.staticSprite(720, 170, 'texExit');
-    const exitTopT = scene.add.text(720, 170, '💖', { fontSize: '24px' }).setOrigin(0.5).setDepth(3);
+    const exitTop = scene.physics.add.staticSprite(720, 150, 'texExit');
+    const exitTopT = scene.add.text(720, 150, '💖', { fontSize: '24px' }).setOrigin(0.5).setDepth(3);
     portalsGroup.add(exitTop);
     dynamicObjects.push(b1T, b2T, exitTopT);
-    startX1 = 90; startY1 = 170; startX2 = 90; startY2 = 430;
+    startX1 = 80; startY1 = 150; startX2 = 80; startY2 = 450;
   }
   else if (lvl === 3) {
     wallsGroup.create(400, 100, 'texWallV');
@@ -346,16 +366,16 @@ function loadLevel(scene, lvl) {
 
     addCactus(scene, 250, 300);
 
-    activeBtn1 = scene.physics.add.staticSprite(100, 120, 'texBtnBase');
-    const b1T = scene.add.text(100, 120, '⏱️', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
-    activeBtn2 = scene.physics.add.staticSprite(100, 480, 'texBtnBase');
-    const b2T = scene.add.text(100, 480, '⏱️', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn1 = scene.physics.add.staticSprite(120, 140, 'texBtnBase');
+    const b1T = scene.add.text(120, 140, '⏱️', { fontSize: '24px' }).setOrigin(0.5).setDepth(2);
+    activeBtn2 = scene.physics.add.staticSprite(120, 460, 'texBtnBase');
+    const b2T = scene.add.text(120, 460, '⏱️', { fontSize: '24px' }).setOrigin(0.5).setDepth(2);
 
     const exit = scene.physics.add.staticSprite(700, 300, 'texExit');
     const exitT = scene.add.text(700, 300, '💖', { fontSize: '26px' }).setOrigin(0.5).setDepth(3);
     portalsGroup.add(exit);
     dynamicObjects.push(b1T, b2T, exitT);
-    startX1 = 100; startY1 = 260; startX2 = 100; startY2 = 340;
+    startX1 = 100; startY1 = 250; startX2 = 100; startY2 = 350;
   }
   else if (lvl === 4) {
     wallsGroup.create(400, 100, 'texWallV');
@@ -439,25 +459,25 @@ function loadLevel(scene, lvl) {
     dynamicObjects.push(b1T, b2T, exitT);
   }
   else if (lvl === 8) {
-    wallsGroup.create(400, 300, 'texWallLongH');
-    activeDoor1 = scene.physics.add.staticSprite(550, 170, 'texDoorSmallBlue');
-    activeDoor2 = scene.physics.add.staticSprite(550, 430, 'texDoorSmallPink');
+    wallsGroup.create(400, 300, 'texWallFullH');
+    activeDoor1 = scene.physics.add.staticSprite(520, 142, 'texDoorBlockTop');
+    activeDoor2 = scene.physics.add.staticSprite(520, 458, 'texDoorBlockBottom');
     doorsGroup.add(activeDoor1);
     doorsGroup.add(activeDoor2);
 
-    createLizard(scene, 350, 170, 90);
-    addCactus(scene, 350, 430);
+    createLizard(scene, 350, 150, 90);
+    addCactus(scene, 350, 450);
 
-    activeBtn1 = scene.physics.add.staticSprite(180, 170, 'texBtnBase');
-    const b1T = scene.add.text(180, 170, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
-    activeBtn2 = scene.physics.add.staticSprite(180, 430, 'texBtnBase');
-    const b2T = scene.add.text(180, 430, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn1 = scene.physics.add.staticSprite(180, 150, 'texBtnBase');
+    const b1T = scene.add.text(180, 150, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn2 = scene.physics.add.staticSprite(180, 450, 'texBtnBase');
+    const b2T = scene.add.text(180, 450, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
 
-    const exitTop = scene.physics.add.staticSprite(720, 170, 'texExit');
-    const exitTopT = scene.add.text(720, 170, '💖', { fontSize: '24px' }).setOrigin(0.5).setDepth(3);
+    const exitTop = scene.physics.add.staticSprite(720, 150, 'texExit');
+    const exitTopT = scene.add.text(720, 150, '💖', { fontSize: '24px' }).setOrigin(0.5).setDepth(3);
     portalsGroup.add(exitTop);
     dynamicObjects.push(b1T, b2T, exitTopT);
-    startX1 = 80; startY1 = 170; startX2 = 80; startY2 = 430;
+    startX1 = 80; startY1 = 150; startX2 = 80; startY2 = 450;
   }
   else if (lvl === 9) {
     wallsGroup.create(250, 200, 'texWallV');
@@ -488,10 +508,10 @@ function loadLevel(scene, lvl) {
     createLizard(scene, 250, 300, 95);
     addCactus(scene, 550, 300);
 
-    activeBtn1 = scene.physics.add.staticSprite(100, 120, 'texBtnBase');
-    const b1T = scene.add.text(100, 120, '⏱️', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
-    activeBtn2 = scene.physics.add.staticSprite(100, 480, 'texBtnBase');
-    const b2T = scene.add.text(100, 480, '⏱️', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn1 = scene.physics.add.staticSprite(120, 140, 'texBtnBase');
+    const b1T = scene.add.text(120, 140, '⏱️', { fontSize: '24px' }).setOrigin(0.5).setDepth(2);
+    activeBtn2 = scene.physics.add.staticSprite(120, 460, 'texBtnBase');
+    const b2T = scene.add.text(120, 460, '⏱️', { fontSize: '24px' }).setOrigin(0.5).setDepth(2);
 
     const exit = scene.physics.add.staticSprite(700, 300, 'texExit');
     const exitT = scene.add.text(700, 300, '💖', { fontSize: '26px' }).setOrigin(0.5).setDepth(3);
@@ -561,27 +581,27 @@ function loadLevel(scene, lvl) {
     dynamicObjects.push(b1T, b2T, exitT);
   }
   else if (lvl === 14) {
-    wallsGroup.create(400, 300, 'texWallLongH');
-    activeDoor1 = scene.physics.add.staticSprite(550, 170, 'texDoorSmallBlue');
-    activeDoor2 = scene.physics.add.staticSprite(550, 430, 'texDoorSmallPink');
+    wallsGroup.create(400, 300, 'texWallFullH');
+    activeDoor1 = scene.physics.add.staticSprite(520, 142, 'texDoorBlockTop');
+    activeDoor2 = scene.physics.add.staticSprite(520, 458, 'texDoorBlockBottom');
     doorsGroup.add(activeDoor1);
     doorsGroup.add(activeDoor2);
 
-    createLizard(scene, 300, 170, 100);
-    createLizard(scene, 400, 430, 100);
-    addCactus(scene, 220, 170);
-    addCactus(scene, 220, 430);
+    createLizard(scene, 300, 150, 100);
+    createLizard(scene, 400, 450, 100);
+    addCactus(scene, 220, 150);
+    addCactus(scene, 220, 450);
 
-    activeBtn1 = scene.physics.add.staticSprite(120, 170, 'texBtnBase');
-    const b1T = scene.add.text(120, 170, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
-    activeBtn2 = scene.physics.add.staticSprite(120, 430, 'texBtnBase');
-    const b2T = scene.add.text(120, 430, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn1 = scene.physics.add.staticSprite(120, 150, 'texBtnBase');
+    const b1T = scene.add.text(120, 150, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn2 = scene.physics.add.staticSprite(120, 450, 'texBtnBase');
+    const b2T = scene.add.text(120, 450, '🔘', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
 
-    const exitTop = scene.physics.add.staticSprite(720, 170, 'texExit');
-    const exitTopT = scene.add.text(720, 170, '💖', { fontSize: '24px' }).setOrigin(0.5).setDepth(3);
+    const exitTop = scene.physics.add.staticSprite(720, 150, 'texExit');
+    const exitTopT = scene.add.text(720, 150, '💖', { fontSize: '24px' }).setOrigin(0.5).setDepth(3);
     portalsGroup.add(exitTop);
     dynamicObjects.push(b1T, b2T, exitTopT);
-    startX1 = 60; startY1 = 170; startX2 = 60; startY2 = 430;
+    startX1 = 60; startY1 = 150; startX2 = 60; startY2 = 450;
   }
   else if (lvl === 15) {
     wallsGroup.create(400, 100, 'texWallV');
@@ -594,10 +614,10 @@ function loadLevel(scene, lvl) {
     addCactus(scene, 250, 150);
     addCactus(scene, 250, 450);
 
-    activeBtn1 = scene.physics.add.staticSprite(100, 120, 'texBtnBase');
-    const b1T = scene.add.text(100, 120, '⏱️', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
-    activeBtn2 = scene.physics.add.staticSprite(100, 480, 'texBtnBase');
-    const b2T = scene.add.text(100, 480, '⏱️', { fontSize: '22px' }).setOrigin(0.5).setDepth(2);
+    activeBtn1 = scene.physics.add.staticSprite(120, 140, 'texBtnBase');
+    const b1T = scene.add.text(120, 140, '⏱️', { fontSize: '24px' }).setOrigin(0.5).setDepth(2);
+    activeBtn2 = scene.physics.add.staticSprite(120, 460, 'texBtnBase');
+    const b2T = scene.add.text(120, 460, '⏱️', { fontSize: '24px' }).setOrigin(0.5).setDepth(2);
 
     const exit = scene.physics.add.staticSprite(700, 300, 'texExit');
     const exitT = scene.add.text(700, 300, '💖', { fontSize: '26px' }).setOrigin(0.5).setDepth(3);
@@ -666,14 +686,14 @@ function startDoorTimer(scene) {
   if (!activeDoor1) return;
 
   activeDoor1.disableBody(true, true);
-  remainingDoorTime = 3.5; // 3.5 Saniyelik ideal pencere
+  remainingDoorTime = 4.0; // 4 Tam Saniye Açık Kalır
   timerText.setText(`⏳ KAPI AÇIK: ${remainingDoorTime.toFixed(1)}s`).setVisible(true);
 
   if (doorTimerEvent) doorTimerEvent.remove();
 
   doorTimerEvent = scene.time.addEvent({
     delay: 500,
-    repeat: 6,
+    repeat: 7,
     callback: () => {
       remainingDoorTime -= 0.5;
       if (remainingDoorTime > 0) {
@@ -737,11 +757,11 @@ function update(time) {
     if (icon) icon.setPosition(monster.x, monster.y);
   });
 
-  // --- GARANTİ BUTON KONTROLLERİ ---
+  // --- MATEMATİKSEL MESAFE İLE GARANTİLİ BUTON KONTROLLERİ ---
   if ([1, 4, 5, 7, 9, 11, 12].includes(currentLevel)) {
     if (activeBtn1 && activeBtn2 && activeDoor1) {
-      const onB1 = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn1.getBounds()) || Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn1.getBounds());
-      const onB2 = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn2.getBounds()) || Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn2.getBounds());
+      const onB1 = isPlayerOnBtn(myPlayer, activeBtn1) || isPlayerOnBtn(remotePlayer, activeBtn1);
+      const onB2 = isPlayerOnBtn(myPlayer, activeBtn2) || isPlayerOnBtn(remotePlayer, activeBtn2);
 
       if (onB1 || onB2) activeDoor1.disableBody(true, true);
       else activeDoor1.enableBody(false, activeDoor1.x, activeDoor1.y, true, true);
@@ -750,8 +770,8 @@ function update(time) {
   }
   else if ([2, 8, 14].includes(currentLevel)) {
     if (activeBtn1 && activeBtn2 && activeDoor1 && activeDoor2) {
-      const onBtnTop = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn1.getBounds()) || Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn1.getBounds());
-      const onBtnBottom = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn2.getBounds()) || Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn2.getBounds());
+      const onBtnTop = isPlayerOnBtn(myPlayer, activeBtn1) || isPlayerOnBtn(remotePlayer, activeBtn1);
+      const onBtnBottom = isPlayerOnBtn(myPlayer, activeBtn2) || isPlayerOnBtn(remotePlayer, activeBtn2);
 
       // Üst buton alt kapıyı açar
       if (onBtnTop) activeDoor2.disableBody(true, true);
@@ -765,13 +785,14 @@ function update(time) {
   }
   else if ([3, 10, 15].includes(currentLevel)) {
     if (activeBtn1 && activeBtn2 && activeDoor1) {
-      const p1OnB1 = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn1.getBounds());
-      const p2OnB2 = Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn2.getBounds());
-      const p1OnB2 = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn2.getBounds());
-      const p2OnB1 = Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn1.getBounds());
+      const p1OnB1 = isPlayerOnBtn(myPlayer, activeBtn1);
+      const p2OnB2 = isPlayerOnBtn(remotePlayer, activeBtn2);
+      const p1OnB2 = isPlayerOnBtn(myPlayer, activeBtn2);
+      const p2OnB1 = isPlayerOnBtn(remotePlayer, activeBtn1);
 
       const isSynchronized = (p1OnB1 && p2OnB2) || (p1OnB2 && p2OnB1);
 
+      // İkiniz de butonlara bastığınız anda tetiklenir
       if (isSynchronized && !doorTimerEvent && activeDoor1.active) {
         startDoorTimer(this);
         if (socket && socket.readyState === WebSocket.OPEN) {
@@ -783,8 +804,8 @@ function update(time) {
   }
   else if ([6, 13].includes(currentLevel)) {
     if (activeBtn1 && activeBtn2 && activeDoor1 && activeDoor2) {
-      const onB1 = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn1.getBounds()) || Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn1.getBounds());
-      const onB2 = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), activeBtn2.getBounds()) || Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), activeBtn2.getBounds());
+      const onB1 = isPlayerOnBtn(myPlayer, activeBtn1) || isPlayerOnBtn(remotePlayer, activeBtn1);
+      const onB2 = isPlayerOnBtn(myPlayer, activeBtn2) || isPlayerOnBtn(remotePlayer, activeBtn2);
 
       if (onB1) activeDoor1.disableBody(true, true);
       else activeDoor1.enableBody(false, activeDoor1.x, activeDoor1.y, true, true);
@@ -795,6 +816,7 @@ function update(time) {
     checkExit(this, currentLevel + 1);
   }
 
+  // Konum Yayını
   if (socket && socket.readyState === WebSocket.OPEN && time > lastSendTime + 50) {
     if (myPlayer.body.velocity.x !== 0 || myPlayer.body.velocity.y !== 0) {
       socket.send(JSON.stringify({
@@ -810,8 +832,8 @@ function checkExit(scene, nextLevelId) {
   const exit = portalsGroup.getFirstAlive();
   if (!exit) return;
 
-  const myOnExit = Phaser.Geom.Intersects.RectangleToRectangle(myPlayer.getBounds(), exit.getBounds());
-  const remoteOnExit = Phaser.Geom.Intersects.RectangleToRectangle(remotePlayer.getBounds(), exit.getBounds());
+  const myOnExit = Phaser.Math.Distance.Between(myPlayer.x, myPlayer.y, exit.x, exit.y) < 40;
+  const remoteOnExit = Phaser.Math.Distance.Between(remotePlayer.x, remotePlayer.y, exit.x, exit.y) < 40;
 
   if (myOnExit && remoteOnExit && !isLevelTransitioning) {
     triggerWin(scene, nextLevelId);
