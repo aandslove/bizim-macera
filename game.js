@@ -39,6 +39,7 @@ let myRole = 'p1';
 let targetRemoteX = 200, targetRemoteY = 450;
 let lastSendTime = 0;
 let isLevelTransitioning = false;
+let isInvulnerable = false; // Doğuş anında anında ölme koruması
 
 // Zamanlayıcılar
 let door1TimerEvent = null;
@@ -55,13 +56,13 @@ const levelData = {
   5: { name: '12 Saniye Baskısı', desc: '⏱️ Süre akıyor! 12 saniye dolmadan kaktüsleri aşıp portala ulaşın!', timeLimit: 12 },
   6: { name: 'Zamanlı Kilitler', desc: '1️⃣ Butonuna bas (5s açık) -> İçeri gir -> 2️⃣ Butonuna basıp çıkışa koş!', timeLimit: 0 },
   7: { name: 'Çifte Kertenkele', desc: '🦎 2 Kertenkele devriye geziyor! Aralarından süzülüp butona basın.', timeLimit: 0 },
-  8: { name: 'Tehlikeli Koridorlar', desc: '🦎 Kertenkeleden kaçarken sırayla karşılıklı kapıları açın (12 Saniye)!', timeLimit: 12 },
+  8: { name: 'Devriye Koridoru', desc: '🦎 Kertenkele düz hatta devriye geziyor! Zamanlamayı kolla (12 Saniye)!', timeLimit: 12 },
   9: { name: 'Dikenli Labirent', desc: '🌵 Kaktüs dolu labirentte dikkatle ilerleyip butonları bulun.', timeLimit: 0 },
   10: { name: 'Kritik Eşzamanlama', desc: '🦎 Kertenkeleden kaçarken butonlara aynı anda basıp hızlıca geçin!', timeLimit: 0 },
-  11: { name: 'Çapraz Avcılar', desc: '🦎 Çapraz gezen 2 kertenkeleye ve kaktüslere dikkat edin!', timeLimit: 0 },
+  11: { name: 'Çapraz Devriyeler', desc: '🦎 Hat boyunca gidip gelen kertenkelelere dikkat edin!', timeLimit: 0 },
   12: { name: 'Son 10 Saniye', desc: '⏱️ 10 Saniyelik hız testi! Kaktüslere çarpmadan koşun!', timeLimit: 10 },
   13: { name: 'Büyük Zindan', desc: '3 Kademeli zamanlı geçit! Sırayla 1️⃣ ve 2️⃣ butonlarıyla kapıları açın.', timeLimit: 0 },
-  14: { name: 'Şampiyonlar Odası', desc: '2 Kertenkele + Kaktüsler + 12 Saniye! Büyük finale son adım!', timeLimit: 12 },
+  14: { name: 'Şampiyonlar Odası', desc: '2 Devriye Kertenkele + Kaktüsler + 12 Saniye! Büyük finale son adım!', timeLimit: 12 },
   15: { name: 'Büyük Final', desc: '👑 FİNAL: 2 Kertenkele, kaktüs tuzakları ve senkronize kapı!', timeLimit: 0 }
 };
 
@@ -73,7 +74,7 @@ const winMessages = {
   5: '💣 ZAMANA KARŞI ZAFER! 💣\nZaman akarken bile sakin kalıp başardınız! ❤️',
   6: '🧩 ZAMANLI GEÇİT AŞILDI! 🧩\nİki kapıyı da 5 saniyede ustaca geçtiniz! 💖',
   7: '🔥 İKİLİ TEHLİKE AŞILDI! 🔥\nİki kertenkelenin arasından süzülmek ustalık ister! ❤️',
-  8: '⏳ HIZLI VE DİKKATLİ! ⏳\nHem süre hem kertenkele varken hiç paniklemediniz! 💖',
+  8: '⏳ DÜZ HATTI USTACA AŞTINIZ! ⏳\nDevriye gezen kertenkeleyi tereyağı gibi atlattınız! 💖',
   9: '🌀 LABİRENTİ FETHETTİNİZ! 🌀\nKalpleriniz birbirini labirentte bile buluyor! ❤️',
   10: '💎 KRİTİK GÖREV TAMAM! 💎\nSenkronize kapıyı tam zamanında yakaladınız! 💖',
   11: '🦎 ÇILGIN KOVALAMACA BİTTİ! 🦎\nKertenkeleleri atlattınız, yolunuza devam ettiniz! ❤️',
@@ -86,7 +87,6 @@ const winMessages = {
 function preload() {
   this.load.image('fotoBen', 'ben.png');
   this.load.image('fotoO', 'o.png');
-  // Arka plan müziği (muzik.mp3 dosyasını yüklerseniz çalar)
   this.load.audio('bgm', 'muzik.mp3');
 }
 
@@ -142,10 +142,14 @@ function create() {
   this.physics.add.collider(monstersGroup, wallsGroup);
   this.physics.add.collider(monstersGroup, doorsGroup);
 
-  this.physics.add.overlap(myPlayer, hazardsGroup, () => restartCurrentLevel(this));
-  this.physics.add.overlap(remotePlayer, hazardsGroup, () => restartCurrentLevel(this));
-  this.physics.add.overlap(myPlayer, monstersGroup, () => restartCurrentLevel(this));
-  this.physics.add.overlap(remotePlayer, monstersGroup, () => restartCurrentLevel(this));
+  const handleHazardTouch = () => {
+    if (!isInvulnerable) restartCurrentLevel(this);
+  };
+
+  this.physics.add.overlap(myPlayer, hazardsGroup, handleHazardTouch);
+  this.physics.add.overlap(remotePlayer, hazardsGroup, handleHazardTouch);
+  this.physics.add.overlap(myPlayer, monstersGroup, handleHazardTouch);
+  this.physics.add.overlap(remotePlayer, monstersGroup, handleHazardTouch);
 
   myLabel = this.add.text(myPlayer.x, myPlayer.y - 28, 'Sen', { 
     fontSize: '11px', fill: '#ffffff', backgroundColor: '#7209b7', padding: { x: 4, y: 2 } 
@@ -165,7 +169,6 @@ function create() {
     blendMode: 'ADD', lifespan: 1200, gravityY: 150, emitting: false
   }).setDepth(95);
 
-  // Müzik Başlatma & Dokunmatik Kontroller
   cursors = this.input.keyboard.createCursorKeys();
   this.input.on('pointerdown', (p) => {
     touchPointer = p;
@@ -189,17 +192,14 @@ function playMusicSafely(scene) {
 function buildTextures(scene) {
   const g = scene.make.graphics({ x: 0, y: 0, add: false });
 
-  // Dikey Standart Duvar (30x200)
   g.fillStyle(0x3c096c, 1); g.fillRect(0, 0, 30, 200);
   g.lineStyle(2, 0x7b2cbf, 0.8); g.strokeRect(0, 0, 30, 200);
   g.generateTexture('texWallV', 30, 200);
 
-  // Yatay Kesintisiz Duvar (800x40 - Sızdırmaz)
   g.clear(); g.fillStyle(0x3c096c, 1); g.fillRect(0, 0, 800, 40);
   g.lineStyle(2, 0x7b2cbf, 0.8); g.strokeRect(0, 0, 800, 40);
   g.generateTexture('texWallFullH', 800, 40);
 
-  // Standart Dikey Lazer Kapı (30x200)
   g.clear(); g.fillStyle(0xff0054, 0.95); g.fillRect(0, 0, 30, 200);
   g.lineStyle(3, 0xff5400, 1); g.strokeRect(0, 0, 30, 200);
   g.generateTexture('texDoorV', 30, 200);
@@ -208,7 +208,6 @@ function buildTextures(scene) {
   g.lineStyle(2, 0xff5400, 1); g.strokeRect(0, 0, 30, 120);
   g.generateTexture('texDoorShortV', 30, 120);
 
-  // Koridorları Tam Kapatan Geçiş Kapısı (30x280)
   g.clear(); g.fillStyle(0x4cc9f0, 0.95); g.fillRect(0, 0, 30, 280);
   g.lineStyle(3, 0xffffff, 1); g.strokeRect(0, 0, 30, 280);
   g.generateTexture('texDoorBlockTop', 30, 280);
@@ -217,24 +216,20 @@ function buildTextures(scene) {
   g.lineStyle(3, 0xffffff, 1); g.strokeRect(0, 0, 30, 280);
   g.generateTexture('texDoorBlockBottom', 30, 280);
 
-  // Buton Tabanı
   g.clear(); g.fillStyle(0x3a0ca3, 1); g.fillRoundedRect(0, 0, 52, 52, 10);
   g.lineStyle(3, 0xffbe0b, 1); g.strokeRoundedRect(0, 0, 52, 52, 10);
   g.generateTexture('texBtnBase', 52, 52);
 
-  // Çıkış Portalı
   g.clear(); g.fillStyle(0x06d6a0, 0.85); g.fillCircle(28, 28, 28);
   g.lineStyle(3, 0xffffff, 1); g.strokeCircle(28, 28, 28);
   g.generateTexture('texExit', 56, 56);
 
-  // Hitbox'lar
   g.clear(); g.fillStyle(0x000000, 0.01); g.fillRect(0, 0, 32, 32);
   g.generateTexture('texHazardHitbox', 32, 32);
 
   g.clear(); g.fillStyle(0x000000, 0.01); g.fillCircle(18, 18, 18);
   g.generateTexture('texMonsterHitbox', 36, 36);
 
-  // Konfeti Partikülü
   g.clear(); g.fillStyle(0xffbe0b, 1); g.fillCircle(5, 5, 5);
   g.generateTexture('texParticle', 10, 10);
 }
@@ -276,13 +271,31 @@ function addCactus(scene, x, y) {
   dynamicObjects.push(txt);
 }
 
+// Takip Eden Kertenkele
 function createLizard(scene, x, y, speed = 80) {
   const m = monstersGroup.create(x, y, 'texMonsterHitbox');
   m.setCollideWorldBounds(true);
   m.setBounce(1, 1);
   m.setData('speed', speed);
+  m.setData('aiType', 'chase');
 
   const icon = scene.add.text(x, y, '🦎', { fontSize: '26px' }).setOrigin(0.5).setDepth(8);
+  dynamicObjects.push(icon);
+  m.setData('iconRef', icon);
+  return m;
+}
+
+// Belirli İki Nokta Arasında Dümdüz Gidip Gelen Devriye Kertenkele
+function createPatrolLizard(scene, startX, startY, minX, maxX, speed = 110) {
+  const m = monstersGroup.create(startX, startY, 'texMonsterHitbox');
+  m.setCollideWorldBounds(false);
+  m.setData('aiType', 'patrol');
+  m.setData('minX', minX);
+  m.setData('maxX', maxX);
+  m.setData('speed', speed);
+  m.setData('dir', 1);
+
+  const icon = scene.add.text(startX, startY, '🦎', { fontSize: '26px' }).setOrigin(0.5).setDepth(8);
   dynamicObjects.push(icon);
   m.setData('iconRef', icon);
   return m;
@@ -322,36 +335,32 @@ function isPlayerOnBtn(player, btn) {
   return Phaser.Math.Distance.Between(player.x, player.y, btn.x, btn.y) < 48;
 }
 
-// BÖLÜM 2, 8 ve 14 İçin Kusursuz Sıralı Geçiş Tasarımı
-function buildCorridorLevel(scene, hasLizard = false) {
-  // Tam ortadan geçen sızdırmaz yatay duvar
+function buildCorridorLevel(scene, hasPatrolLizards = false) {
   wallsGroup.create(400, 300, 'texWallFullH');
 
-  // Üst Koridor Kapısı (x:450) ve Alt Koridor Kapısı (x:450)
   activeDoor1 = scene.physics.add.staticSprite(450, 140, 'texDoorBlockTop');
   activeDoor2 = scene.physics.add.staticSprite(450, 460, 'texDoorBlockBottom');
 
   doorsGroup.add(activeDoor1);
   doorsGroup.add(activeDoor2);
 
-  // Kaktüsler
   addCactus(scene, 280, 140);
   addCactus(scene, 280, 460);
 
-  if (hasLizard) {
-    createLizard(scene, 200, 140, 90);
-    createLizard(scene, 200, 460, 90);
+  // 8. ve 14. Bölümde Oyuncuları Kovalamayan, Düz Hat Boyunca Devriye Gezen Kertenkeleler
+  if (hasPatrolLizards) {
+    // Üst koridorda 200 ile 400 arasında gidip gelir
+    createPatrolLizard(scene, 340, 140, 200, 410, 120);
+    // Alt koridorda 200 ile 400 arasında gidip gelir
+    createPatrolLizard(scene, 220, 460, 200, 410, 120);
   }
 
-  // 1. Buton: Üst Koridorun GİRİŞ tarafında (Alttaki kapıyı açar)
   activeBtn1 = scene.physics.add.staticSprite(120, 140, 'texBtnBase');
   const b1T = scene.add.text(120, 140, '🔘 1', { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(2);
 
-  // 2. Buton: Alt Koridorun KARŞI tarafında / Çıkışa yakın (Üstteki kapıyı açar)
   activeBtn2 = scene.physics.add.staticSprite(600, 460, 'texBtnBase');
   const b2T = scene.add.text(600, 460, '🔘 2', { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(2);
 
-  // Çıkış Portalları
   exitPortal1 = scene.physics.add.staticSprite(720, 140, 'texExit');
   const exitTopT = scene.add.text(720, 140, '💖', { fontSize: '24px' }).setOrigin(0.5).setDepth(3);
   portalsGroup.add(exitPortal1);
@@ -366,6 +375,10 @@ function buildCorridorLevel(scene, hasLizard = false) {
 function loadLevel(scene, lvl) {
   clearCurrentLevel();
   currentLevel = lvl;
+
+  // Doğar doğmaz ölme koruması (1.5 saniye)
+  isInvulnerable = true;
+  scene.time.delayedCall(1500, () => { isInvulnerable = false; });
 
   const info = levelData[lvl] || { name: `Bölüm ${lvl}`, desc: '', timeLimit: 0 };
   missionText.setText(`Bölüm ${lvl}: ${info.desc}`);
@@ -502,6 +515,7 @@ function loadLevel(scene, lvl) {
     dynamicObjects.push(b1T, b2T, exitT);
   }
   else if (lvl === 8) {
+    // 8. BÖLÜM: Düz Hat Devriye Kertenkeleleri
     buildCorridorLevel(scene, true);
     startX1 = 70; startY1 = 140; startX2 = 70; startY2 = 460;
   }
@@ -550,8 +564,8 @@ function loadLevel(scene, lvl) {
     activeDoor1 = scene.physics.add.staticSprite(400, 300, 'texDoorV');
     doorsGroup.add(activeDoor1);
 
-    createLizard(scene, 180, 200, 100);
-    createLizard(scene, 620, 400, 100);
+    createPatrolLizard(scene, 200, 250, 120, 360, 110);
+    createPatrolLizard(scene, 600, 350, 450, 720, 110);
     addCactus(scene, 300, 450);
     addCactus(scene, 500, 150);
 
@@ -593,7 +607,7 @@ function loadLevel(scene, lvl) {
     doorsGroup.add(activeDoor1);
     doorsGroup.add(activeDoor2);
 
-    createLizard(scene, 400, 300, 95);
+    createPatrolLizard(scene, 400, 300, 300, 500, 100);
     addCactus(scene, 400, 150);
 
     activeBtn1 = scene.physics.add.staticSprite(100, 150, 'texBtnBase');
@@ -617,8 +631,8 @@ function loadLevel(scene, lvl) {
     activeDoor1 = scene.physics.add.staticSprite(400, 300, 'texDoorV');
     doorsGroup.add(activeDoor1);
 
-    createLizard(scene, 200, 300, 105);
-    createLizard(scene, 600, 300, 105);
+    createPatrolLizard(scene, 220, 200, 150, 350, 110);
+    createPatrolLizard(scene, 600, 400, 450, 720, 110);
     addCactus(scene, 250, 150);
     addCactus(scene, 250, 450);
 
@@ -792,13 +806,30 @@ function update(time) {
   remotePlayer.x = Phaser.Math.Linear(remotePlayer.x, targetRemoteX, 0.35);
   remotePlayer.y = Phaser.Math.Linear(remotePlayer.y, targetRemoteY, 0.35);
 
+  // Kertenkele Hareket Mantığı (Chase & Patrol)
   monstersGroup.getChildren().forEach(monster => {
-    const dMy = Phaser.Math.Distance.Between(monster.x, monster.y, myPlayer.x, myPlayer.y);
-    const dRemote = Phaser.Math.Distance.Between(monster.x, monster.y, remotePlayer.x, remotePlayer.y);
-    const target = dMy < dRemote ? myPlayer : remotePlayer;
+    const aiType = monster.getData('aiType') || 'chase';
 
-    const mSpeed = monster.getData('speed') || 80;
-    this.physics.moveToObject(monster, target, mSpeed);
+    if (aiType === 'patrol') {
+      const minX = monster.getData('minX');
+      const maxX = monster.getData('maxX');
+      const mSpeed = monster.getData('speed') || 110;
+      let dir = monster.getData('dir') || 1;
+
+      if (monster.x >= maxX) dir = -1;
+      else if (monster.x <= minX) dir = 1;
+
+      monster.setData('dir', dir);
+      monster.setVelocityX(dir * mSpeed);
+      monster.setVelocityY(0);
+    } else {
+      const dMy = Phaser.Math.Distance.Between(monster.x, monster.y, myPlayer.x, myPlayer.y);
+      const dRemote = Phaser.Math.Distance.Between(monster.x, monster.y, remotePlayer.x, remotePlayer.y);
+      const target = dMy < dRemote ? myPlayer : remotePlayer;
+
+      const mSpeed = monster.getData('speed') || 80;
+      this.physics.moveToObject(monster, target, mSpeed);
+    }
 
     const icon = monster.getData('iconRef');
     if (icon) icon.setPosition(monster.x, monster.y);
@@ -816,16 +847,13 @@ function update(time) {
     checkExit(this, currentLevel + 1);
   }
   else if ([2, 8, 14].includes(currentLevel)) {
-    // 2, 8 ve 14: Karşılıklı Geçiş Mekaniği
     if (activeBtn1 && activeBtn2 && activeDoor1 && activeDoor2) {
       const onBtn1 = isPlayerOnBtn(myPlayer, activeBtn1) || isPlayerOnBtn(remotePlayer, activeBtn1);
       const onBtn2 = isPlayerOnBtn(myPlayer, activeBtn2) || isPlayerOnBtn(remotePlayer, activeBtn2);
 
-      // Üst giriş butonu (1) alttaki kapıyı açar
       if (onBtn1) activeDoor2.disableBody(true, true);
       else activeDoor2.enableBody(false, 450, 460, true, true);
 
-      // Alt çıkış butonu (2) üstteki kapıyı açar
       if (onBtn2) activeDoor1.disableBody(true, true);
       else activeDoor1.enableBody(false, 450, 140, true, true);
     }
@@ -873,7 +901,6 @@ function update(time) {
     checkExit(this, currentLevel + 1);
   }
 
-  // Konum Senkronizasyonu
   if (socket && socket.readyState === WebSocket.OPEN && time > lastSendTime + 50) {
     if (myPlayer.body.velocity.x !== 0 || myPlayer.body.velocity.y !== 0) {
       socket.send(JSON.stringify({
